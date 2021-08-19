@@ -1,6 +1,7 @@
 import json, jwt
+from unittest.mock import patch, MagicMock
 
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.http import HttpRequest
 
 from my_settings          import ALGORITHM 
@@ -71,4 +72,138 @@ class SignInDecoratorTest(TestCase):
 
         self.assertEqual(json.loads(user_id(fake_request).content)['MESSAGE'],'INVALID_TOKEN')
 
-    
+class SignInTest(TestCase):
+    def setUp(self):
+        User.objects.bulk_create([
+            User(
+                id          = 1,
+                nickname    = "test",
+                kakao_id    = 1111111111,
+                kakao_email = "test@test.com"
+            ),
+            User(
+                id          = 2,
+                kakao_id    = 1111111112,
+                kakao_email = "test123@test.com"
+            )
+        ])
+
+    def tearDown(self):
+        User.objects.all().delete()
+
+    @patch("users.views.requests")
+    def test_signin_existing_user_success(self, mocked_requests):
+        client = Client()
+
+        class MockedResponse:
+            def json(self):
+                return {
+                    "id": 1111111111,
+                    'connected_at': '2021-08-19T07:59:52Z', 
+                    'properties': {'nickname': 'testtest'}, 
+                    'kakao_account': {
+                        'profile_nickname_needs_agreement': False,
+                        'profile': {'nickname': 'testtest'},
+                        'has_email': True,
+                        'email_needs_agreement': False,
+                        'is_email_valid': True,
+                        'is_email_verified': True,
+                        'email': 'test@test.com'
+                    }
+                }
+
+        mocked_requests.get = MagicMock(return_value = MockedResponse())
+
+        data = {'access_token' : 'fake_access_token'}
+        response = client.post('/users/signin', content_type='application/json', data=data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['nickname'], 'test')
+
+    @patch("users.views.requests")
+    def test_signin_new_user_create_success(self, mocked_requests):
+        client = Client()
+
+        class MockedResponse:
+            def json(self):
+                return {
+                    "id": 2222222222,
+                    'connected_at': '2021-08-19T07:59:52Z', 
+                    'properties': {'nickname': 'testtest'}, 
+                    'kakao_account': {
+                        'profile_nickname_needs_agreement': False,
+                        'profile': {'nickname': 'testtest'},
+                        'has_email': True,
+                        'email_needs_agreement': False,
+                        'is_email_valid': True,
+                        'is_email_verified': True,
+                        'email': 'test2@test.com'
+                    }
+                }
+
+        mocked_requests.get = MagicMock(return_value = MockedResponse())
+
+        data = {'access_token' : 'fake_access_token'}
+        response = client.post('/users/signin', content_type='application/json', data=data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['nickname'], None)
+
+    @patch("users.views.requests")
+    def test_signin_existing_user_need_nickname(self, mocked_requests):
+        client = Client()
+
+        class MockedResponse:
+            def json(self):
+                return {
+                    "id": 1111111112,
+                    'connected_at': '2021-08-19T07:59:52Z', 
+                    'properties': {'nickname': 'testtest'}, 
+                    'kakao_account': {
+                        'profile_nickname_needs_agreement': False,
+                        'profile': {'nickname': 'testtest'},
+                        'has_email': True,
+                        'email_needs_agreement': False,
+                        'is_email_valid': True,
+                        'is_email_verified': True,
+                        'email': 'test123@test.com'
+                    }
+                }
+
+        mocked_requests.get = MagicMock(return_value = MockedResponse())
+
+        data = {'access_token' : 'fake_access_token'}
+        response = client.post('/users/signin', content_type='application/json', data=data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['nickname'], None)
+
+    @patch("users.views.requests")
+    def test_signin_token_key_error(self, mocked_requests):
+        client = Client()
+
+        class MockedResponse:
+            def json(self):
+                return {
+                    "id": 2222222222,
+                    'connected_at': '2021-08-19T07:59:52Z', 
+                    'properties': {'nickname': 'testtest'}, 
+                    'kakao_account': {
+                        'profile_nickname_needs_agreement': False,
+                        'profile': {'nickname': 'testtest'},
+                        'has_email': True,
+                        'email_needs_agreement': False,
+                        'is_email_valid': True,
+                        'is_email_verified': True,
+                        'email': 'test@test.com'
+                    }
+                }
+
+        mocked_requests.get = MagicMock(return_value = MockedResponse())
+
+        data = {'access_token2222' : 'fake_access_token'}
+
+        response = client.post('/users/signin', content_type='application/json', data=data)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {'MESSAGE':'KEY_ERROR'})
