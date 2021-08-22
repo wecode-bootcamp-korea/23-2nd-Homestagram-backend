@@ -2,11 +2,11 @@ import boto3, uuid
 
 from django.http  import JsonResponse
 from django.views import View
-from django.core.exceptions import ObjectDoesNotExist
 
 from postings.models          import Posting, DesignType
 from homestagram.settings     import AWS_STORAGE_BUCKET_NAME, AWS_S3_SECRET_ACCESS_KEY, AWS_S3_ACCESS_KEY_ID
 from users.utils              import SignInDecorator
+from users.models             import Bookmark, User
 
 class PostingView(View):
     @SignInDecorator
@@ -46,3 +46,34 @@ class PostingView(View):
         
         except DesignType.DoesNotExist:
             return JsonResponse({'MESSAGE' : 'DESIGN_TYPE_DOES_NOT_EXIST'}, status=400)
+
+class BookmarkView(View):
+    @SignInDecorator
+    def post(self, request, posting_id):
+        if not Posting.objects.filter(id=posting_id).exists():
+            return JsonResponse({'MESSAGE' : 'POSTING_DOES_NOT_EXIST'}, status=400)
+
+        bookmark, flag = Bookmark.objects.get_or_create(
+            posting = Posting.objects.get(id=posting_id),
+            user    = request.user
+        )
+
+        if not flag:
+            bookmark.delete()
+            return JsonResponse({'MESSAGE' : 'BOOKMARK_DELETED'}, status=204)
+        
+        return JsonResponse({'MESSAGE' : 'BOOKMARK_CREATED'}, status=201)
+
+    def get(self, request, user_id):
+        if not User.objects.filter(id=user_id).exists():
+            return JsonResponse({'MESSAGE' : 'USER_DOES_NOT_EXIST'}, status=400)
+
+        bookmarks = Bookmark.objects.select_related('posting', 'user').filter(user_id=user_id)
+
+        bookmark_list = [{
+            'posting_id'       : bookmark.posting.id,
+            'posting_username' : bookmark.user.nickname,
+            'posting_image_url': bookmark.posting.image_url,
+        } for bookmark in bookmarks ]
+
+        return JsonResponse({'LIST' : bookmark_list}, status=200)
