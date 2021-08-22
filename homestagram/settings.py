@@ -165,3 +165,34 @@ AWS_S3_ACCESS_KEY_ID     = AWS_S3_ACCESS_KEY_ID
 AWS_STORAGE_BUCKET_NAME  = AWS_STORAGE_BUCKET_NAME
 
 S3_URL = S3_URL
+
+# LOGGING = {
+#     'disable_existing_loggers': False,
+#     'version': 1,
+#     'formatters': {
+#          'verbose': {
+#             'format': '{asctime} {levelname} {message}',
+#             'style': '{'
+#         },
+#     },
+#     'handlers': {
+#         'console': {
+#             'class'     : 'logging.StreamHandler',
+#             'formatter' : 'verbose',
+#             'level'     : 'DEBUG',
+#         },
+#         'file': {
+#             'level'     : 'DEBUG',
+#             'class'     : 'logging.FileHandler',
+#             'formatter' : 'verbose',
+#             'filename'  : 'debug.log',
+#         },
+#     },
+#     'loggers': {
+#         'django.db.backends': {
+#             'handlers' : ['console','file'],
+#             'level'    : 'DEBUG',
+#             'propagate': False,
+#         },
+#     },
+# }

@@ -1,15 +1,17 @@
 import boto3, uuid, json
 
-from django.http  import JsonResponse
-from django.views import View
-from django.db    import transaction
-from django.db.models import Max
+from django.http           import JsonResponse
+from django.views          import View
+from django.db             import transaction
+from django.db.models      import Prefetch
+from django.core.paginator import Paginator
 
 from postings.models          import Posting, DesignType, Tag, Comment
 from homestagram.settings     import AWS_STORAGE_BUCKET_NAME, AWS_S3_SECRET_ACCESS_KEY, AWS_S3_ACCESS_KEY_ID, S3_URL
 from users.utils              import SignInDecorator
 from users.models             import Bookmark, User
 from products.models          import Product
+from decorators               import query_debugger
 
 class PostingView(View):
     @SignInDecorator
@@ -18,7 +20,9 @@ class PostingView(View):
         try:
             content     = request.POST.get('content')
             design_type = request.POST.get('design_type')
+            print(design_type)
             image       = request.FILES.get('file')
+            print(request.POST.get('tags'))
             tags        = json.loads(request.POST.get('list'))['tags']
             user        = request.user
 
@@ -135,3 +139,86 @@ class CommentView(View):
         Comment.objects.filter(id=comment_id).delete()
 
         return JsonResponse({'MESSAGE' : 'COMMENT_DELETED'}, status=200)
+
+class PostingFeedPublicView(View):
+    @query_debugger
+    def get(self, request):
+        page      = int(request.GET.get('page', 1))
+        postings  = Posting.objects.select_related('user').prefetch_related('comment_set', 'comment_set__user', 'tag_set', 'tag_set__product').order_by('-id')
+
+        feed = [{
+            'feedId'    : posting.id,
+            'feeduserId': posting.user.nickname,
+            'src'       : posting.image_url,
+            'content'   : posting.content,
+            'postedDate': posting.created_at,
+            'designType': posting.design_type_id,
+            'comment'   : [{
+                'id'       : comment.id,
+                'content'  : comment.content,
+                'date'     : comment.created_at,
+                'user_name': comment.user.nickname
+            } for comment in posting.comment_set.all()],
+            'tags' : [{
+                'id'           : tag.id,
+                'xx'           : int(tag.coordinate.lstrip('(').rstrip(')').split(',')[0]),
+                'yy'           : int(tag.coordinate.lstrip('(').rstrip(')').split(',')[1]),
+                'product_title': tag.product.product_name,
+                'product_price': round(tag.product.price),
+                'thumbnail_url': tag.product.thumbnail_url
+            } for tag in posting.tag_set.all()],
+            'follow'  : False,
+            'bookmark': False
+        } for posting in postings ]
+
+        paginator = Paginator(feed, 5)
+        pages     = paginator.get_page(page).object_list
+        has_next  = paginator.get_page(page).has_next()
+
+        return JsonResponse({
+            'POSTING_FEED': pages,
+            'HAS_NEST'    : has_next
+            })
+
+class PostingFeedPrivateView(View):
+    @SignInDecorator
+    @query_debugger
+    def get(self, request):
+        page      = int(request.GET.get('page', 1))
+        user      = request.user
+        bookmarks = Bookmark.objects.filter(user_id=user.id)
+        postings  = Posting.objects.select_related('user').prefetch_related('comment_set', 'comment_set__user', 'tag_set', 'tag_set__product', 'user__followed', Prefetch('bookmark_set', queryset=bookmarks)).order_by('-id')
+
+        feed = [{
+            'feedId'    : posting.id,
+            'feeduserId': posting.user.nickname,
+            'src'       : posting.image_url,
+            'content'   : posting.content,
+            'postedDate': posting.created_at,
+            'designType': posting.design_type_id,
+            'comment'   : [{
+                'id'       : comment.id,
+                'content'  : comment.content,
+                'date'     : comment.created_at,
+                'user_name': comment.user.nickname
+            } for comment in posting.comment_set.all()],
+            'tags' : [{
+                'id'           : tag.id,
+                'xx'           : int(tag.coordinate.lstrip('(').rstrip(')').split(',')[0]),
+                'yy'           : int(tag.coordinate.lstrip('(').rstrip(')').split(',')[1]),
+                'product_title': tag.product.product_name,
+                'product_price': round(tag.product.price),
+                'thumbnail_url': tag.product.thumbnail_url
+            } for tag in posting.tag_set.all()],
+            'follow'  : posting.user.followed.exists(),
+            'bookmark': posting.bookmark_set.exists()
+        } for posting in postings ]
+
+        paginator = Paginator(feed, 5)
+        pages     = paginator.get_page(page).object_list
+        has_next  = paginator.get_page(page).has_next()
+
+        return JsonResponse({
+            'POSTING_FEED': pages,
+            'HAS_NEXT'    : has_next
+            })
