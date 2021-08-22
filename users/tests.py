@@ -36,7 +36,7 @@ class SignInDecoratorTest(TestCase):
 
         @SignInDecorator
         def user_id(self, request):
-            return f'user_id is {request.user.id}'
+            return f'user_id is {request.user.id if request.user else "guest"}'
         
         self.assertEqual(user_id(fake_request),'user_id is 1')
 
@@ -48,7 +48,7 @@ class SignInDecoratorTest(TestCase):
 
         @SignInDecorator
         def user_id(self, request):
-            return f'user_id is {request.user.id}'
+            return f'user_id is {request.user.id if request.user else "guest"}'
 
         self.assertEqual(json.loads(user_id(fake_request).content)['MESSAGE'],'NEED_NICKNAME')
 
@@ -57,9 +57,9 @@ class SignInDecoratorTest(TestCase):
 
         @SignInDecorator
         def user_id(self, request):
-            return f'user_id is {request.user.id}'
+            return f'user_id is {request.user.id if request.user else "guest"}'
 
-        self.assertEqual(json.loads(user_id(fake_request).content)['MESSAGE'],'NEED_LOGIN')
+        self.assertEqual(user_id(fake_request),'user_id is guest')
 
     def test_decorator_invalid_token(self):
         fake_request         = HttpRequest()
@@ -67,8 +67,6 @@ class SignInDecoratorTest(TestCase):
 
         @SignInDecorator
         def user_id(self, request):
-            return f'user_id is {request.user.id}'
+            return f'user_id is {request.user.id if request.user else "guest"}'
 
         self.assertEqual(json.loads(user_id(fake_request).content)['MESSAGE'],'INVALID_TOKEN')
-
-    

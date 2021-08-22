@@ -6,7 +6,6 @@ from my_settings            import ALGORITHM
 from users.models           import User
 from homestagram.settings   import SECRET_KEY
 
-
 class SignInDecorator: 
     def __init__(self, function):
         self.function = function
@@ -22,9 +21,10 @@ class SignInDecorator:
                 if not request.user.nickname:
                     return JsonResponse({"MESSAGE":"NEED_NICKNAME"}, status=401)
 
-                return self.function(self, request, *args, **kwargs)   
+            else:
+                request.user = None
 
-            return JsonResponse({"MESSAGE":"NEED_LOGIN"}, status=401)
+            return self.function(self, request, *args, **kwargs)   
 
         except jwt.DecodeError:
             return JsonResponse({"MESSAGE":"INVALID_TOKEN"}, status=401)
