@@ -35,3 +35,14 @@ class SocialSignInView(View):
 
         except KeyError:
             return JsonResponse({'MESSAGE': 'KEY_ERROR'}, status=400)
+
+class NicknameView(View):
+    def post(self, request, user_id):
+        nickname = json.loads(request.body)['nickname']
+
+        if User.objects.filter(nickname=nickname).exists():
+            return JsonResponse({'MESSAGE':'NICKNAME_ALREADY_EXISTS'}, status=409)
+
+        User.objects.filter(id=user_id).update(nickname=nickname)
+
+        return JsonResponse({'MESSAGE':'UPDATED'}, status=200)
