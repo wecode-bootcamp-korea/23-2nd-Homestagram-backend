@@ -207,3 +207,50 @@ class SignInTest(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {'MESSAGE':'KEY_ERROR'})
+
+class NicknameRegisterTest(TestCase):
+    def setUp(self):
+        self.users = User.objects.bulk_create([
+            User(
+                id          = 1,
+                nickname    = "test",
+                kakao_id    = 1111111111,
+                kakao_email = "test@test.com"
+            ),
+            User(
+                id          = 2,
+                kakao_id    = 1111111112,
+                kakao_email = "test123@test.com"
+            )
+        ])
+
+    def tearDown(self):
+        User.objects.all().delete()
+
+    def test_nickname_new_register_success(self):
+        client = Client()
+        
+        data = {'nickname': "test2"}
+        response = client.post('/users/' + f'{self.users[1].id}' + '/nickname', content_type='application/json', data=data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'MESSAGE':'UPDATED'})
+
+    def test_nickname_update_success(self):
+        client = Client()
+        
+        data = {'nickname': "test3"}
+        response = client.post('/users/' + f'{self.users[0].id}' + '/nickname', content_type='application/json', data=data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'MESSAGE':'UPDATED'})
+        self.assertEqual(User.objects.get(id=self.users[0].id).nickname, 'test3')
+    
+    def test_nickname_register_already_exist(self):
+        client = Client()
+        
+        data = {'nickname': "test"}
+        response = client.post('/users/' + f'{self.users[1].id}' + '/nickname', content_type='application/json', data=data)
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json(), {'MESSAGE':'NICKNAME_ALREADY_EXISTS'})
