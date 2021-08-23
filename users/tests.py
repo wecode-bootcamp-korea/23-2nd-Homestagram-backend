@@ -8,6 +8,7 @@ from my_settings          import ALGORITHM
 from homestagram.settings import SECRET_KEY
 from users.utils          import SignInDecorator
 from users.models         import User, Follow
+from postings.models      import Posting, DesignType
 
 class SignInDecoratorTest(TestCase):
     def setUp(self):
@@ -291,3 +292,54 @@ class UserFollowListTest(TestCase):
         response = client.get('/users/follow', HTTP_AUTHORIZATION=token, content_type='application/json')
 
         self.assertEqual(response.json(),{'response':[{'id':2, 'nickname':'test2'},{'id':3, 'nickname':'test3'}]})
+
+class FollowTest(TestCase):
+    def setUp(self):
+        self.users = User.objects.bulk_create([
+            User(
+                id          = 1,
+                nickname    = "test",
+                kakao_id    = 1111111111,
+                kakao_email = "test@test.com"
+            ),
+            User(
+                id          = 2,
+                nickname    = "test2",
+                kakao_id    = 1111111112,
+                kakao_email = "test2@test.com"
+            )
+        ])
+
+        self.design_type = DesignType.objects.create(
+            id=1, 
+            name='침실'
+        )
+
+        self.posting = Posting.objects.create(
+            id = 1,
+            content = 'test',
+            user = self.users[1],
+            image_url = '/test.png',
+            design_type = DesignType.objects.get(id=1)
+        )
+
+        self.access_token = jwt.encode({'id': self.users[0].id}, SECRET_KEY, algorithm=ALGORITHM)
+
+    def tearDown(self):
+        User.objects.all().delete()
+        Posting.objects.all().delete()
+
+    def test_follow_success(self):
+        client = Client()
+
+        response = client.post('/users/follow', {'user_id': 2}, HTTP_AUTHORIZATION=self.access_token, content_type='application/json')
+
+        self.assertEqual(response.json()['MESSAGE'],'FOLLOWED')
+
+    def test_follow_again_to_unfollow(self):
+        client = Client()
+
+        first_response  = client.post('/users/follow', {'user_id': 2}, HTTP_AUTHORIZATION=self.access_token, content_type='application/json')
+        second_response = client.post('/users/follow', {'user_id': 2}, HTTP_AUTHORIZATION=self.access_token, content_type='application/json')
+
+        self.assertEqual(second_response.json()['MESSAGE'],'UNFOLLOWED')
