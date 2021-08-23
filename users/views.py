@@ -3,7 +3,7 @@ import json, jwt, requests
 from django.views import View
 from django.http  import JsonResponse
 
-from users.models import User
+from users.models import User, Follow
 from users.utils  import SignInDecorator
 from my_settings  import SECRET_KEY, ALGORITHM
 
@@ -59,3 +59,16 @@ class FollowView(View):
         } for following in followings]
 
         return JsonResponse({"response":result}, status=200)
+        
+    @SignInDecorator
+    def post(self, request):
+        follow, is_created = Follow.objects.get_or_create(
+            follower = request.user,
+            followed = User.objects.get(id=json.loads(request.body)['user_id'])
+        )
+
+        if not is_created:
+            follow.delete()
+            return JsonResponse({'MESSAGE': 'UNFOLLOWED'}, status=200)
+        
+        return JsonResponse({'MESSAGE':'FOLLOWED'}, status=200)
