@@ -38,11 +38,14 @@ class Cart(models.Model):
         db_table = 'carts'
 
 class PurchaseHistory(models.Model):
-    user               = models.ForeignKey('user', on_delete=models.DO_NOTHING)
-    purchased_product  = models.ForeignKey('products.productoption', on_delete=models.DO_NOTHING)
-    purchased_quantity = models.IntegerField()
-    purchased_price    = models.IntegerField()
-    purchased_time     = models.DateTimeField(auto_now_add=True)
+    user                 = models.ForeignKey('user', on_delete=models.DO_NOTHING)
+    purchased_product    = models.ForeignKey('products.productoption', on_delete=models.DO_NOTHING)
+    purchased_quantity   = models.IntegerField()
+    purchased_price      = models.IntegerField()
+    purchased_time       = models.DateTimeField(auto_now_add=True)
+    paypal_payer_id      = models.CharField(max_length=50)
+    paypal_payment_id    = models.CharField(max_length=100)
+    paypal_payment_token = models.CharField(max_length=200)
 
     class Meta:
         db_table = 'purchase_histories'
