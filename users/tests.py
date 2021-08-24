@@ -7,7 +7,7 @@ from django.http import HttpRequest
 from my_settings          import ALGORITHM 
 from homestagram.settings import SECRET_KEY
 from users.utils          import SignInDecorator
-from users.models         import User
+from users.models         import User, Follow
 
 class SignInDecoratorTest(TestCase):
     def setUp(self):
@@ -254,3 +254,40 @@ class NicknameRegisterTest(TestCase):
 
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.json(), {'MESSAGE':'NICKNAME_ALREADY_EXISTS'})
+
+class UserFollowListTest(TestCase):
+    def setUp(self):
+        User.objects.bulk_create([
+            User(
+                id          = i,
+                nickname    = "test" + str(i),
+                kakao_id    = i * 1111111111,
+                kakao_email = "test" + str(i) + "@test.com"
+            ) for i in range(1,4)]
+        )
+
+        Follow.objects.bulk_create([
+            Follow(
+                id = 1,
+                follower = User.objects.get(id=1),
+                followed = User.objects.get(id=2)
+            ),
+            Follow(
+                id = 2,
+                follower = User.objects.get(id=1),
+                followed = User.objects.get(id=3)
+            ),
+        ])
+
+    def tearDown(self):
+        User.objects.all().delete()
+        Follow.objects.all().delete()
+
+    def test_user_follow_list_success(self):
+        client = Client()
+
+        token = jwt.encode({'id': 1}, SECRET_KEY, algorithm=ALGORITHM)
+
+        response = client.get('/users/follow', HTTP_AUTHORIZATION=token, content_type='application/json')
+
+        self.assertEqual(response.json(),{'response':[{'id':2, 'nickname':'test2'},{'id':3, 'nickname':'test3'}]})

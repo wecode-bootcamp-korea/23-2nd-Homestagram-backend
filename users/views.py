@@ -4,6 +4,7 @@ from django.views import View
 from django.http  import JsonResponse
 
 from users.models import User
+from users.utils  import SignInDecorator
 from my_settings  import SECRET_KEY, ALGORITHM
 
 class SocialSignInView(View):
@@ -46,3 +47,15 @@ class NicknameView(View):
         User.objects.filter(id=user_id).update(nickname=nickname)
 
         return JsonResponse({'MESSAGE':'UPDATED'}, status=200)
+
+class FollowView(View):
+    @SignInDecorator
+    def get(self, request):
+        followings = User.objects.filter(followed__follower=request.user.id)
+
+        result = [{
+                "id"       : following.id,
+                "nickname" : following.nickname,
+        } for following in followings]
+
+        return JsonResponse({"response":result}, status=200)
