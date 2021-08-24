@@ -7,9 +7,11 @@ from unittest.mock                  import MagicMock, patch
 from users.models      import User, Bookmark
 from postings.models   import DesignType, Posting
 from my_settings       import SECRET_KEY, ALGORITHM
+from products.models   import Product
 
 class PostingTest(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(self):
         User.objects.create(
             id          = 1,
             nickname    = 'Jun',
@@ -28,6 +30,13 @@ class PostingTest(TestCase):
             image_url   = '123',
             design_type = DesignType.objects.get(name='거실'),
             user        = User.objects.get(id=1)
+        )
+
+        Product.objects.create(
+            id            = 1,
+            product_name  = '의자',
+            price         = 10000,
+            thumbnail_url = '123.com'
         )
     
     def tearDown(self):
@@ -55,7 +64,8 @@ class PostingTest(TestCase):
         body = {
             'content'    : 'just moved!',
             'design_type': '거실',
-            'image'      : image_file
+            'file'      : image_file,
+            'list'       : '{"tags" : [{"xx" : 101, "yy" : 201,"product_id" : 1}]}'
         }
 
         mocked_s3_client.upload = MagicMock(return_value=MockedResponse())
@@ -75,9 +85,10 @@ class PostingTest(TestCase):
         headers = {'HTTP_AUTHORIZATION': access_token}
 
         body = {
-            'content'     : 'just moved!',
+            'content'    : 'just moved!',
             'design_type': '거실',
-            'image'       : ''
+            'file'      : '',
+            'list'       : '{"tags" : [{"xx" : 101, "yy" : 201,"product_id" : 1}]}'
         }
 
         mocked_s3_client.upload = MagicMock(return_value=MockedResponse())
@@ -104,9 +115,10 @@ class PostingTest(TestCase):
         )
 
         body = {
-            'content'     : 'just moved!',
+            'content'    : 'just moved!',
             'design_type1': '거실',
-            'image'       : image_file
+            'file'      : image_file,
+            'list'       : '{"tags" : [{"xx" : 101, "yy" : 201,"product_id" : 1}]}'
         }
 
         mocked_s3_client.upload = MagicMock(return_value=MockedResponse())
@@ -114,6 +126,36 @@ class PostingTest(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {'MESSAGE' : 'DESIGN_TYPE_DOES_NOT_EXIST'} )
+
+    @patch('postings.views.boto3.client')
+    def test_posting_tag_invalid_keys(self, mocked_s3_client):
+        client       = Client()
+        access_token = jwt.encode({'id' : 1}, SECRET_KEY, algorithm=ALGORITHM)
+
+        class MockedResponse:
+            def upload(self):
+                return None
+
+        headers = {'HTTP_AUTHORIZATION': access_token}
+
+        image_file = SimpleUploadedFile(
+            'file.jpg',
+            b'file_content',
+            content_type='image/ief'
+        )
+
+        body = {
+            'content'    : 'just moved!',
+            'design_type': '거실',
+            'file'      : image_file,
+            'list'       : '{"tags" : [{"xx_key_error" : 101, "yy" : 201,"product_id" : 1}]}'
+        }
+
+        mocked_s3_client.upload = MagicMock(return_value=MockedResponse())
+        response                = client.post("/posting", body, **headers)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {'MESSAGE' : 'KEY_ERROR'} )
 
 class BookmarkTest(TestCase):
     @classmethod

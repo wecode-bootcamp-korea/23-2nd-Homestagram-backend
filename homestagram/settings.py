@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 
-from my_settings import DATABASES, SECRET_KEY, AWS_STORAGE_BUCKET_NAME, AWS_S3_ACCESS_KEY_ID, AWS_S3_SECRET_ACCESS_KEY
+from my_settings import DATABASES, SECRET_KEY, AWS_STORAGE_BUCKET_NAME, AWS_S3_ACCESS_KEY_ID, AWS_S3_SECRET_ACCESS_KEY, S3_URL
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -163,3 +163,5 @@ AWS_QUERYSTRING_AUTH = False
 AWS_S3_SECRET_ACCESS_KEY = AWS_S3_SECRET_ACCESS_KEY
 AWS_S3_ACCESS_KEY_ID     = AWS_S3_ACCESS_KEY_ID
 AWS_STORAGE_BUCKET_NAME  = AWS_STORAGE_BUCKET_NAME
+
+S3_URL = S3_URL
