@@ -3,7 +3,7 @@ import json, jwt, requests
 from django.views import View
 from django.http  import JsonResponse
 
-from users.models import User, Follow
+from users.models import PurchaseHistory, User, Follow
 from users.utils  import SignInDecorator
 from my_settings  import SECRET_KEY, ALGORITHM
 
@@ -72,3 +72,17 @@ class FollowView(View):
             return JsonResponse({'MESSAGE': 'UNFOLLOWED'}, status=200)
         
         return JsonResponse({'MESSAGE':'FOLLOWED'}, status=200)
+
+class PurchaseHistoryView(View):
+    @SignInDecorator
+    def get(self, request):
+        purchases = PurchaseHistory.objects.select_related('purchased_product', 'purchased_product__product')
+        
+        result = [{
+                "price"     : purchase.purchased_price,
+                "date"      : purchase.purchased_time.strftime("%Y-%m-%d"),
+                "product"   : purchase.purchased_product.product.product_name,
+                "product_id": purchase.purchased_product.product.id
+        } for purchase in purchases]
+
+        return JsonResponse({"RESPONSE":result}, status=200)
