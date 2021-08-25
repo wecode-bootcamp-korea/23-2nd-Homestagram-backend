@@ -7,8 +7,9 @@ from django.http import HttpRequest
 from my_settings          import ALGORITHM 
 from homestagram.settings import SECRET_KEY
 from users.utils          import SignInDecorator
-from users.models         import User, Follow
+from users.models         import User, Follow, PurchaseHistory
 from postings.models      import Posting, DesignType
+from products.models      import Product, Color, ProductOption
 
 class SignInDecoratorTest(TestCase):
     def setUp(self):
@@ -343,3 +344,68 @@ class FollowTest(TestCase):
         second_response = client.post('/users/follow', {'user_id': 2}, HTTP_AUTHORIZATION=self.access_token, content_type='application/json')
 
         self.assertEqual(second_response.json()['MESSAGE'],'UNFOLLOWED')
+
+class PurchaseListTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create(
+                id          = 1,
+                nickname    = "test",
+                kakao_id    = 1111111111,
+                kakao_email = "test@test.com"
+        )
+
+        self.color = Color.objects.create(
+            id   = 1, 
+            name = 'black'
+        )
+
+        self.product = Product.objects.create(
+            id            = 1,
+            product_name  = '침대',
+            price         = 10000,
+            thumbnail_url = '/test.png',
+        )
+
+        self.product_option = ProductOption.objects.create(
+            id      = 1,
+            product = self.product,
+            color   = self.color,
+            stock   = 10,
+        )
+
+        PurchaseHistory.objects.bulk_create([
+            PurchaseHistory(
+                user                 = self.user, 
+                purchased_product    = self.product_option,
+                purchased_quantity   = 1,
+                purchased_price      = 20000, 
+                paypal_payer_id      = 'testid',
+                paypal_payment_id    = 'testpayment',
+                paypal_payment_token = 'testtoken',
+            ),
+            PurchaseHistory(
+                user                 = self.user, 
+                purchased_product    = self.product_option,
+                purchased_quantity   = 1,
+                purchased_price      = 15000, 
+                paypal_payer_id      = 'testid',
+                paypal_payment_id    = 'testpayment',
+                paypal_payment_token = 'testtoken',
+            ),
+        ])
+
+        self.access_token = jwt.encode({'id': self.user.id}, SECRET_KEY, algorithm=ALGORITHM)
+
+    def tearDown(self):
+        PurchaseHistory.objects.all().delete()
+        ProductOption.objects.all().delete()
+        Product.objects.all().delete()
+        User.objects.all().delete()
+        Color.objects.all().delete()
+        
+    def test_purchase_history_get_success(self):
+        client = Client()
+
+        response = client.get('/users/purchase-history', HTTP_AUTHORIZATION=self.access_token, content_type='application/json')
+
+        self.assertEqual(response.status_code, 200)
