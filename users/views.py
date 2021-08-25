@@ -3,6 +3,7 @@ import json, jwt, requests
 from django.views import View
 from django.http  import JsonResponse
 
+from products.models import ProductOption
 from users.models import PurchaseHistory, User, Follow
 from users.utils  import SignInDecorator
 from my_settings  import SECRET_KEY, ALGORITHM
@@ -87,4 +88,23 @@ class PurchaseHistoryView(View):
         } for purchase in purchases]
 
         return JsonResponse({"RESPONSE":result}, status=200)
+
+    @SignInDecorator
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+
+            PurchaseHistory.objects.create(
+                user                 = request.user,
+                purchased_product    = ProductOption.objects.get(id=data['product_id']),
+                purchased_quantity   = 1,
+                purchased_price      = data['price'],
+                paypal_payer_id      = data['payerID'],
+                paypal_payment_id    = data['paymentID'],
+                paypal_payment_token = data['paymentToken'],
+            )
+
+            return JsonResponse({'MESSAGE':'CREATED'}, status=201)
         
+        except KeyError:
+            return JsonResponse({'MESSAGE':'KEY_ERROR'}, status=400)

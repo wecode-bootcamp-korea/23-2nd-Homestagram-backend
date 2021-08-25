@@ -409,3 +409,33 @@ class PurchaseListTest(TestCase):
         response = client.get('/users/purchase-history', HTTP_AUTHORIZATION=self.access_token, content_type='application/json')
 
         self.assertEqual(response.status_code, 200)
+
+    def test_purchase_history_post_success(self):
+        client = Client()
+
+        data = {
+            'product_id'   : 1,
+            'price'        : 10000,
+            'payerID'      : 'aaabbbccc',
+            'paymentID'    : '111222333',
+            'paymentToken' : 'paypaltoken'
+        }
+
+        response = client.post('/users/purchase-history', data, HTTP_AUTHORIZATION=self.access_token, content_type='application/json')
+
+        self.assertEqual(response.status_code, 201)
+
+    def test_purchase_history_post_key_error(self):
+        client = Client()
+
+        data = {
+            'product_id'   : 1,
+            'wrong_key'    : 10000,
+            'payerID'      : 'aaabbbccc',
+            'paymentID'    : '111222333',
+            'paymentToken' : 'paypaltoken'
+        }
+
+        response = client.post('/users/purchase-history', data, HTTP_AUTHORIZATION=self.access_token, content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
