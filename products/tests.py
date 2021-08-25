@@ -52,7 +52,7 @@ class ProductDetailTest(TestCase):
                 ],
                 "product_option": [{
                     "color_name"   : "검은색",
-                    "product_stock": 100
+                    "product_stocks": 100
                 }]
             }
         )
