@@ -1,3 +1,4 @@
+from django.http import response
 import jwt
 
 from django.test                    import TestCase, Client
@@ -5,7 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from unittest.mock                  import MagicMock, patch
 
 from users.models      import User, Bookmark
-from postings.models   import DesignType, Posting
+from postings.models   import DesignType, Posting, Comment
 from my_settings       import SECRET_KEY, ALGORITHM
 from products.models   import Product
 
@@ -224,3 +225,67 @@ class BookmarkTest(TestCase):
                 }]
             }
         )
+
+class CommentTest(TestCase):
+    @classmethod
+    def setUpTestData(self):
+        User.objects.create(
+            id          = 1,
+            nickname    = 'Jun',
+            kakao_id    = 1,
+            kakao_email = 'wecode@gmail.com'
+        )
+
+        self.access_token = jwt.encode({'id' : 1}, SECRET_KEY, algorithm=ALGORITHM)
+
+        DesignType.objects.create(
+            id   = 1,
+            name = '거실'
+        )
+
+        Posting.objects.create(
+            id          = 1,
+            content     = 'World\'s Best Coding BootCamp WeCode',
+            image_url   = '123.com',
+            design_type = DesignType.objects.get(id=1),
+            user        = User.objects.get(id=1)
+        )
+
+        Comment.objects.create(
+            id      = 1,
+            content = 'Wecode',
+            posting = Posting.objects.get(id=1),
+            user    = User.objects.get(id=1)
+        )
+
+    def tearDown(self):
+        Posting.objects.all().delete()
+        DesignType.objects.all().delete()
+        User.objects.all().delete()
+
+    def test_comment_post_success(self):
+        client = Client()
+        body = {
+            'content' : 'Wecode'
+        }
+        response = client.post('/postings/1/comment', body, content_type='application/json', HTTP_AUTHORIZATION=self.access_token)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'MESSAGE' : 'COMMENT_CREATED'} )
+
+    def test_comment_patch_success(self):
+        client = Client()
+        body = {
+            'content' : 'Wecode1'
+        }
+        response = client.patch('/comment/1', body, content_type='application/json')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'MESSAGE' : 'COMMENT_EDITED'})
+
+    def test_comment_delete_success(self):
+        client = Client()
+        response = client.delete('/comment/1')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'MESSAGE' : 'COMMENT_DELETED'})

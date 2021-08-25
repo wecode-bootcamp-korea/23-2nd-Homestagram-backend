@@ -5,7 +5,7 @@ from django.views import View
 from django.db    import transaction
 from django.db.models import Max
 
-from postings.models          import Posting, DesignType, Tag
+from postings.models          import Posting, DesignType, Tag, Comment
 from homestagram.settings     import AWS_STORAGE_BUCKET_NAME, AWS_S3_SECRET_ACCESS_KEY, AWS_S3_ACCESS_KEY_ID, S3_URL
 from users.utils              import SignInDecorator
 from users.models             import Bookmark, User
@@ -95,4 +95,43 @@ class BookmarkView(View):
         } for bookmark in bookmarks ]
 
         return JsonResponse({'LIST' : bookmark_list}, status=200)
-        
+
+class CommentView(View):
+    @SignInDecorator
+    def post(self, request, posting_id):
+        try:
+            if not Posting.objects.filter(id=posting_id).exists():
+                return JsonResponse({'MESSAGE' : 'POSTING_DOES_NOT_EXIST'})
+
+            data = json.loads(request.body)
+
+            Comment.objects.create(
+                content = data['content'],
+                user = request.user,
+                posting_id = posting_id
+            )
+
+            return JsonResponse({'MESSAGE' : 'COMMENT_CREATED'}, status=200)
+
+        except KeyError:
+            return JsonResponse({'MESSAGE' : 'KEY_ERROR'}, status=400)
+
+    def patch(self, request, comment_id):
+        if not Comment.objects.filter(id=comment_id).exists():
+            return JsonResponse({'MESSAGE' : 'COMMENT_DOES_NOT_EXIST'})
+
+        data = json.loads(request.body)
+
+        Comment.objects.filter(id=comment_id).update(
+            content = data['content']
+        )
+
+        return JsonResponse({'MESSAGE' : 'COMMENT_EDITED'}, status=200)
+
+    def delete(self, request, comment_id):
+        if not Comment.objects.filter(id=comment_id).exists():
+            return JsonResponse({'MESSAGE' : 'COMMENT_DOES_NOT_EXIST'})
+
+        Comment.objects.filter(id=comment_id).delete()
+
+        return JsonResponse({'MESSAGE' : 'COMMENT_DELETED'}, status=200)
