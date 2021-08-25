@@ -21,5 +21,6 @@ urlpatterns = [
     path('posting', include('postings.urls')),
     path('postings', include('postings.urls')),
     path('user', include('postings.urls')),
-    path('products', include('products.urls'))
+    path('products', include('products.urls')),
+    path('comment', include('postings.urls')),
 ]
