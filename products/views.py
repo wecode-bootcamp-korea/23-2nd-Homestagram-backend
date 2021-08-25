@@ -14,7 +14,7 @@ class ProductDetailView(View):
         
         return JsonResponse({
             'product_title' : product.product_name,
-            'product_price' : product.price,
+            'product_price' : round(product.price),
             'url'           : product.thumbnail_url,
             'product_images': [
                 image.image_url for image in product.productimage_set.all()
