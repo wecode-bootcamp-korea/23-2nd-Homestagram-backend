@@ -79,10 +79,12 @@ class PurchaseHistoryView(View):
         purchases = PurchaseHistory.objects.select_related('purchased_product', 'purchased_product__product')
         
         result = [{
-                "price"     : purchase.purchased_price,
-                "date"      : purchase.purchased_time.strftime("%Y-%m-%d"),
-                "product"   : purchase.purchased_product.product.product_name,
-                "product_id": purchase.purchased_product.product.id
+                "price"        : purchase.purchased_price,
+                "date"         : purchase.purchased_time.strftime("%Y-%m-%d"),
+                "product"      : purchase.purchased_product.product.product_name,
+                "product_id"   : purchase.purchased_product.product.id,
+                "product_image": purchase.purchased_product.product.thumbnail_url
         } for purchase in purchases]
 
         return JsonResponse({"RESPONSE":result}, status=200)
+        
