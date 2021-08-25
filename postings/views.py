@@ -77,3 +77,4 @@ class BookmarkView(View):
         } for bookmark in bookmarks ]
 
         return JsonResponse({'LIST' : bookmark_list}, status=200)
+        
