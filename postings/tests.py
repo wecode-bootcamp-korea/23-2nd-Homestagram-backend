@@ -6,7 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from unittest.mock                  import MagicMock, patch
 
 from users.models      import User, Bookmark
-from postings.models   import DesignType, Posting, Comment
+from postings.models   import DesignType, Posting, Comment, Tag
 from my_settings       import SECRET_KEY, ALGORITHM
 from products.models   import Product
 
@@ -289,3 +289,70 @@ class CommentTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {'MESSAGE' : 'COMMENT_DELETED'})
+
+class PostingFeedTest(TestCase):
+    @classmethod
+    def setUpTestData(self):
+        User.objects.create(
+            id          = 1,
+            nickname    = 'wecode',
+            kakao_id    = 1,
+            kakao_email = 'wecode@gmail.com'
+        )
+
+        DesignType.objects.create(
+            id   = 1,
+            name = '거실'
+        )
+
+        Posting.objects.create(
+            id          = 1,
+            content     = 'wow',
+            image_url   = 'wecode_image1.com',
+            design_type = DesignType.objects.get(id=1),
+            user        = User.objects.get(id=1)
+        )
+
+        Comment.objects.create(
+            id      = 1,
+            content = 'hi',
+            posting = Posting.objects.get(id=1),
+            user    = User.objects.get(id=1)
+        )
+
+        Product.objects.create(
+            id            = 1,
+            product_name  = '의자',
+            price         = 1000,
+            thumbnail_url = 'wecode_image2.com'
+        )
+
+        Tag.objects.create(
+            id         = 1,
+            coordinate = '(101, 201)',
+            posting    = Posting.objects.get(id=1),
+            product    = Product.objects.get(id=1)
+        )
+
+        self.token    = jwt.encode({'id': 1}, SECRET_KEY, algorithm=ALGORITHM)
+
+    def tearDown(self):
+        Tag.objects.all().delete()
+        Product.objects.all().delete()
+        Comment.objects.all().delete()
+        Posting.objects.all().delete()
+        DesignType.objects.all().delete()
+        User.objects.all().delete()
+
+    def test_posting_public_feed_get_success(self):
+        client   = Client()
+        response = client.get('/postings/feed/public')
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_posting_private_feed_get_success(self):
+        client   = Client()
+        headers  = {'HTTP_Authorization' : self.token}
+        response = client.get('/postings/feed/private?page=1', **headers)
+
+        self.assertEqual(response.status_code, 200)
