@@ -77,7 +77,7 @@ class FollowView(View):
 class PurchaseHistoryView(View):
     @SignInDecorator
     def get(self, request):
-        purchases = PurchaseHistory.objects.select_related('purchased_product', 'purchased_product__product')
+        purchases = PurchaseHistory.objects.select_related('purchased_product', 'purchased_product__product').filter(user=request.user).order_by('-id')
         
         result = [{
                 "price"        : purchase.purchased_price,
