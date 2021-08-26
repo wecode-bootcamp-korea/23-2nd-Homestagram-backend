@@ -20,7 +20,7 @@ urlpatterns = [
     path('users', include('users.urls')),
     path('posting', include('postings.urls')),
     path('postings', include('postings.urls')),
-    path('user', include('postings.urls')),
+    path('bookmarks', include('postings.urls')),
     path('products', include('products.urls')),
     path('comment', include('postings.urls')),
 ]

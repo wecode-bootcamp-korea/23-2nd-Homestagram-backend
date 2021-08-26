@@ -82,11 +82,11 @@ class BookmarkView(View):
         
         return JsonResponse({'MESSAGE' : 'BOOKMARK_CREATED'}, status=201)
 
-    def get(self, request, user_id):
-        if not User.objects.filter(id=user_id).exists():
-            return JsonResponse({'MESSAGE' : 'USER_DOES_NOT_EXIST'}, status=400)
+    @SignInDecorator
+    def get(self, request):
+        user = request.user
 
-        bookmarks = Bookmark.objects.select_related('posting', 'user').filter(user_id=user_id)
+        bookmarks = Bookmark.objects.select_related('posting', 'user').filter(user_id=user.id)
 
         bookmark_list = [{
             'posting_id'       : bookmark.posting.id,
