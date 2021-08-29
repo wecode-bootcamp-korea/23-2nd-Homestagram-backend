@@ -6,7 +6,9 @@
 
 ### 개발 인원 및 기간
 - 개발기간 : 2021/8/17 ~ 2021/8/27<br>
-- 개발인원 : 프론트엔드 3명, 백엔드 2명
+- 프론트엔드 : [남재현](https://github.com/nam2350), [이지선](https://github.com/ddodam), [최정민](https://github.com/minmin9324)
+- 백엔드    : [장호준](https://github.com/bigfanoftim), [송진수](https://github.com/jssong1592)
+- [프론트엔드 github 링크](https://github.com/wecode-bootcamp-korea/23-2nd-Homestagram-frontend)
 
 ### 프로젝트 선정이유
 - 게시글 속 태그를 통하여 커뮤니티와 커머스 기능을 결합한 점에 매력을 느끼고, 이에 모티브를 얻어 프로젝트를 선정하였습니다. 
