@@ -13,7 +13,6 @@ class SignInDecorator:
 
     def __call__(self, request, *args, **kwargs):
         token = request.headers.get("Authorization", None)
-        
         try:
             if token:
                 payload       = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHM)

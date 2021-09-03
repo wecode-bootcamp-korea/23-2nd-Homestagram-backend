@@ -93,10 +93,10 @@ class PurchaseHistoryView(View):
     def post(self, request):
         try:
             data = json.loads(request.body)
-
+            print(data)
             PurchaseHistory.objects.create(
                 user                 = request.user,
-                purchased_product    = ProductOption.objects.get(id=data['product_id']),
+                purchased_product    = ProductOption.objects.get(product_id=data['product_id']),
                 purchased_quantity   = 1,
                 purchased_price      = data['price'],
                 paypal_payer_id      = data['payerID'],
