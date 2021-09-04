@@ -9,7 +9,7 @@ from django.core.paginator import Paginator
 from postings.models          import Posting, DesignType, Tag, Comment
 from homestagram.settings     import AWS_STORAGE_BUCKET_NAME, AWS_S3_SECRET_ACCESS_KEY, AWS_S3_ACCESS_KEY_ID, S3_URL
 from users.utils              import SignInDecorator
-from users.models             import Bookmark, User
+from users.models             import Bookmark, Follow
 from products.models          import Product
 from decorators               import query_debugger
 
@@ -67,6 +67,16 @@ class PostingView(View):
         except KeyError:
             return JsonResponse({'MESSAGE' : 'KEY_ERROR'}, status=400)
 
+    # @SignInDecorator
+    # def delete(self, request, posting_id):
+    #     user = request.user
+    #     Tag.objects.filter(posting_id=posting_id).delete()
+    #     Bookmark.objects.filter(posting_id=posting_id).delete()
+    #     Comment.objects.filter(posting_id=posting_id).delete()
+    #     Posting.objects.filter(id=posting_id).delete()
+
+    #     return JsonResponse({'MESSAGE' : 'POSTING_DELETED'}, status=200)
+
 class BookmarkView(View):
     @SignInDecorator
     def post(self, request, posting_id):
@@ -88,11 +98,11 @@ class BookmarkView(View):
     def get(self, request):
         user = request.user
 
-        bookmarks = Bookmark.objects.select_related('posting', 'user').filter(user_id=user.id)
+        bookmarks = Bookmark.objects.select_related('posting', 'posting__user').filter(user_id=user.id)
 
         bookmark_list = [{
             'posting_id'       : bookmark.posting.id,
-            'posting_username' : bookmark.user.nickname,
+            'posting_username' : bookmark.posting.user.nickname,
             'posting_image_url': bookmark.posting.image_url,
         } for bookmark in bookmarks ]
 
@@ -141,23 +151,25 @@ class CommentView(View):
 class PostingFeedPublicView(View):
     def get(self, request):
         page      = int(request.GET.get('page', 1))
-        postings  = Posting.objects.select_related('user').prefetch_related('comment_set', 'comment_set__user', 'tag_set', 'tag_set__product').order_by('-id')
+        postings  = Posting.objects.select_related('user').prefetch_related('comment_set', 'comment_set__user', 'tag_set', 'tag_set__product').order_by('-created_at')
 
         feed = [{
             'feedId'    : posting.id,
-            'feeduserId': posting.user.nickname,
+            'feeduserId': posting.user.id,
+            'feedUserName' : posting.user.nickname,
             'src'       : posting.image_url,
             'content'   : posting.content,
-            'postedDate': posting.created_at,
+            'postedDate': str(posting.created_at)[:10],
             'designType': posting.design_type_id,
             'comment'   : [{
                 'id'       : comment.id,
                 'content'  : comment.content,
-                'date'     : comment.created_at,
+                'date'     : str(comment.created_at)[:10],
                 'user_name': comment.user.nickname
             } for comment in posting.comment_set.all()],
             'tags' : [{
                 'id'           : tag.id,
+                'product_id'   : tag.product.id,
                 'xx'           : int(tag.coordinate.lstrip('(').rstrip(')').split(',')[0]),
                 'yy'           : int(tag.coordinate.lstrip('(').rstrip(')').split(',')[1]),
                 'product_title': tag.product.product_name,
@@ -179,27 +191,34 @@ class PostingFeedPublicView(View):
 
 class PostingFeedPrivateView(View):
     @SignInDecorator
+    @query_debugger
     def get(self, request):
         page      = int(request.GET.get('page', 1))
         user      = request.user
         bookmarks = Bookmark.objects.filter(user_id=user.id)
-        postings  = Posting.objects.select_related('user').prefetch_related('comment_set', 'comment_set__user', 'tag_set', 'tag_set__product', 'user__followed', Prefetch('bookmark_set', queryset=bookmarks)).order_by('-id')
+        followers = Follow.objects.filter(follower_id=user.id)
+        postings  = Posting.objects.select_related('user').prefetch_related('comment_set',\
+                    'comment_set__user', 'tag_set', 'tag_set__product', Prefetch('bookmark_set',\
+                    queryset=bookmarks), Prefetch('user__followed',queryset=followers)).\
+                    order_by('-created_at')
 
         feed = [{
-            'feedId'    : posting.id,
-            'feeduserId': posting.user.nickname,
-            'src'       : posting.image_url,
-            'content'   : posting.content,
-            'postedDate': posting.created_at,
-            'designType': posting.design_type_id,
-            'comment'   : [{
+            'feedId'      : posting.id,
+            'feeduserId'  : posting.user.id,
+            'feedUserName': posting.user.nickname,
+            'src'         : posting.image_url,
+            'content'     : posting.content,
+            'postedDate'  : str(posting.created_at)[:10],
+            'designType'  : posting.design_type_id,
+            'comment'     : [{
                 'id'       : comment.id,
                 'content'  : comment.content,
-                'date'     : comment.created_at,
+                'date'     : str(comment.created_at)[:10],
                 'user_name': comment.user.nickname
             } for comment in posting.comment_set.all()],
             'tags' : [{
                 'id'           : tag.id,
+                'product_id'   : tag.product.id,
                 'xx'           : int(tag.coordinate.lstrip('(').rstrip(')').split(',')[0]),
                 'yy'           : int(tag.coordinate.lstrip('(').rstrip(')').split(',')[1]),
                 'product_title': tag.product.product_name,

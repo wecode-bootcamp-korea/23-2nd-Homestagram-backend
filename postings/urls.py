@@ -9,5 +9,6 @@ urlpatterns = [
     path('/<int:posting_id>/comment', CommentView.as_view()),
     path('/<int:comment_id>', CommentView.as_view()),
     path('/feed/public', PostingFeedPublicView.as_view()),
-    path('/feed/private', PostingFeedPrivateView.as_view())
+    path('/feed/private', PostingFeedPrivateView.as_view()),
+    path('/<int:posting_id>/delete', PostingView.as_view()),
 ]
